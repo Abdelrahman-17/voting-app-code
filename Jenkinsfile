@@ -16,7 +16,6 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                     echo 'Running Static Code Analysis via SonarScanner on Host Network...'
-                    // السطر العالمي اللي نجح معاك وجاب الأخضر
                     sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=${SONAR_TOKEN}"
                 }
             }
@@ -40,11 +39,11 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    echo 'Logging into Docker Hub...'
-                    // صياغة أكثر أماناً واستقراراً لتجنب مشاكل الـ Malformed Header في تمرير الباسورد
-                    sh 'docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"'
+                    echo 'Logging into Docker Hub Registry...'
+                    // الطريقة القياسية والأكثر أماناً لتمرير الـ PAT Token
+                    sh 'echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin'
                     
-                    echo 'Pushing Images to Docker Hub Registry...'
+                    echo 'Pushing Clean Enterprise Images...'
                     sh 'docker push ${DOCKER_HUB_USER}/voting-app-vote:latest'
                     sh 'docker push ${DOCKER_HUB_USER}/voting-app-result:latest'
                 }
