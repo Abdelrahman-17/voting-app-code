@@ -15,9 +15,9 @@ pipeline {
         stage('SonarQube Code Check') {
             steps {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                    echo 'Running Static Code Analysis via SonarScanner...'
-                    // ربطنا الحاوية بنفس شبكة الكومبوز وبنادي على السيرفر باسمه الصريح
-                    sh "docker run --rm --network enterprise-devops-platform_default -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.host.url=http://sonarqube:9000 -Dsonar.login=${SONAR_TOKEN}"
+                    echo 'Running Static Code Analysis via SonarScanner on Host Network...'
+                    // استخدمنا --network=host عشان نخليه يشوف بورت 9000 على الـ Localhost بتاع جهازك علطول
+                    sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=${SONAR_TOKEN}"
                 }
             }
         }
