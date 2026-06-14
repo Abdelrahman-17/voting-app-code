@@ -1,8 +1,8 @@
-ipeline {
+pipeline {
     agent any
     
     environment {
-        DOCKER_HUB_USER = 'Abdelrahman-17' 
+        DOCKER_HUB_USER = 'Abdelrahman-17'
     }
     
     stages {
@@ -16,17 +16,17 @@ ipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                     echo 'Running Static Code Analysis via SonarQube...'
-                    
                 }
             }
         }
         
         stage('Security Scan (Trivy)') {
             steps {
-                echo 'Scanning Source Code for Security Vulnerabilities via Docker...'
-                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE:/root/ aquasec/trivy fs /root/'
-                 }
-             }
+                echo 'Scanning Source Code via Trivy Container...'
+                // سطر صريح ومحمي بدون متغيرات معقدة
+                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy fs /root/'
+            }
+        }
         
         stage('Build Docker Images') {
             steps {
