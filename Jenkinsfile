@@ -2,7 +2,6 @@ pipeline {
     agent any
     
     environment {
-        // تم التعديل هنا ليتطابق مع اسم حسابك الفعلي في دوكر هاب
         DOCKER_HUB_USER = 'abdelrahmana890'
     }
     
@@ -22,9 +21,9 @@ pipeline {
             }
         }
         
-        stage('Security Scan (Trivy)') {
+        stage('Security Scan (Trivy FS)') {
             steps {
-                echo 'Scanning Source Code via Trivy Container...'
+                echo 'Scanning Source Code Files via Trivy...'
                 sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy fs /root/'
             }
         }
@@ -34,6 +33,15 @@ pipeline {
                 echo 'Building Enterprise Docker Images...'
                 sh 'docker build -t ${DOCKER_HUB_USER}/voting-app-vote:latest ./vote'
                 sh 'docker build -t ${DOCKER_HUB_USER}/voting-app-result:latest ./result'
+            }
+        }
+
+        // 🔥 الخطوة الجديدة في الـ Roadmap: فحص الـ Images اللي اتبنت حالا قبل الـ Push
+        stage('Security Scan (Trivy Image)') {
+            steps {
+                echo 'Scanning Docker Images for OS Vulnerabilities via Trivy...'
+                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${DOCKER_HUB_USER}/voting-app-vote:latest'
+                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${DOCKER_HUB_USER}/voting-app-result:latest'
             }
         }
 
