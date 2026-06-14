@@ -15,9 +15,9 @@ pipeline {
         stage('SonarQube Code Check') {
             steps {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                    echo 'Running Static Code Analysis via SonarScanner on Apps Directory...'
-                    // تم تعديل -Dsonar.sources ليقرأ مجلد apps/ المظبوط عشان الـ Dashboard تقرأ سطور الكود
-                    sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=apps/ -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=${SONAR_TOKEN}"
+                    echo 'Running Static Code Analysis via SonarScanner with Inclusions...'
+                    // تم تعديل البرامتر ليكون -Dsonar.sources=. مع استخدام -Dsonar.inclusions لحل مشكلة الـ Folder Not Found
+                    sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.inclusions=apps/** -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=${SONAR_TOKEN}"
                 }
             }
         }
