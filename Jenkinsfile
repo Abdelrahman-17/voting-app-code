@@ -16,8 +16,8 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                     echo 'Running Static Code Analysis via SonarScanner...'
-                    // سطر نظيف ومحمي ومجرب 100% بدون تعقيد شبكات
-                    sh "docker run --rm -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.host.url=http://172.17.0.1:9000 -Dsonar.login=${SONAR_TOKEN}"
+                    // ربطنا الحاوية بنفس شبكة الكومبوز وبنادي على السيرفر باسمه الصريح
+                    sh "docker run --rm --network enterprise-devops-platform_default -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.host.url=http://sonarqube:9000 -Dsonar.login=${SONAR_TOKEN}"
                 }
             }
         }
