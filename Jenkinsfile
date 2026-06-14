@@ -22,11 +22,11 @@ ipeline {
         }
         
         stage('Security Scan (Trivy)') {
-         steps {
-             echo 'Scanning Source Code for Security Vulnerabilities via Docker...'
-             sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE:/root/ aquasec/trivy fs /root/'
-           }
-        }
+            steps {
+                echo 'Scanning Source Code for Security Vulnerabilities via Docker...'
+                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE:/root/ aquasec/trivy fs /root/'
+                 }
+             }
         
         stage('Build Docker Images') {
             steps {
