@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_HUB_USER = 'abdelrahmana890'
+        DOCKER_HUB_USER = 'Abdelrahman-17'
     }
     
     stages {
@@ -15,8 +15,9 @@ pipeline {
         stage('SonarQube Code Check') {
             steps {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                    echo 'Running Static Code Analysis via SonarScanner on Host Network...'
-                    sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=${SONAR_TOKEN}"
+                    echo 'Running Static Code Analysis via SonarScanner on Apps Directory...'
+                    // تم تعديل -Dsonar.sources ليقرأ مجلد apps/ المظبوط عشان الـ Dashboard تقرأ سطور الكود
+                    sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=apps/ -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=${SONAR_TOKEN}"
                 }
             }
         }
@@ -31,12 +32,11 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 echo 'Building Enterprise Docker Images...'
-                sh 'docker build -t ${DOCKER_HUB_USER}/voting-app-vote:latest ./vote'
-                sh 'docker build -t ${DOCKER_HUB_USER}/voting-app-result:latest ./result'
+                sh 'docker build -t ${DOCKER_HUB_USER}/voting-app-vote:latest ./apps/vote'
+                sh 'docker build -t ${DOCKER_HUB_USER}/voting-app-result:latest ./apps/result'
             }
         }
 
-        // 🔥 الخطوة الجديدة في الـ Roadmap: فحص الـ Images اللي اتبنت حالا قبل الـ Push
         stage('Security Scan (Trivy Image)') {
             steps {
                 echo 'Scanning Docker Images for OS Vulnerabilities via Trivy...'
@@ -55,6 +55,15 @@ pipeline {
                     sh 'docker push ${DOCKER_HUB_USER}/voting-app-vote:latest'
                     sh 'docker push ${DOCKER_HUB_USER}/voting-app-result:latest'
                 }
+            }
+        }
+
+        stage('Continuous Deployment (CD)') {
+            steps {
+                echo 'Deploying Application Services via Docker Compose Prod...'
+                sh 'docker compose -f docker-compose.prod.yml pull'
+                sh 'docker compose -f docker-compose.prod.yml up -d'
+                echo 'Deployment complete! Application is live.'
             }
         }
     }
