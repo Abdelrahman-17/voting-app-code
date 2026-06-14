@@ -2,7 +2,8 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_HUB_USER = 'Abdelrahman-17'
+        // تم التعديل هنا ليتطابق مع اسم حسابك الفعلي في دوكر هاب
+        DOCKER_HUB_USER = 'abdelrahmana890'
     }
     
     stages {
@@ -40,7 +41,6 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     echo 'Logging into Docker Hub Registry...'
-                    // الطريقة القياسية والأكثر أماناً لتمرير الـ PAT Token
                     sh 'echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin'
                     
                     echo 'Pushing Clean Enterprise Images...'
