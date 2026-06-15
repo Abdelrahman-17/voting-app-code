@@ -14,9 +14,11 @@ pipeline {
         
         stage('SonarQube Code Check') {
             steps {
-                echo 'Running Static Code Analysis via SonarScanner with Inclusions...'
-                // التعديل الأخير: استخدام مسار الحاوية الحالي مع الـ Inclusions وتخطي الـ Token باستخدام اليوزر والباسورد الافتراضيين
-                sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.inclusions=apps/** -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=admin -Dsonar.password=admin"
+                echo 'Running Static Code Analysis via SonarScanner...'
+                // رجعنا للـ Token المؤمن جوه جينكينز عشان يتخطى الـ Bad Authentication
+                withSonarQubeEnv('sonar') {
+                    sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.inclusions=apps/** -Dsonar.host.url=http://127.0.0.1:9000"
+                }
             }
         }
         
