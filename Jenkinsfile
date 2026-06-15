@@ -26,10 +26,10 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 echo 'Building Enterprise Docker Images...'
-                // حولنا الـ A لحروف صغيرة abdelrahman-17 عشان نمشي مع معايير الـ Registry الصارمة
+                // غيرنا الاسم صراحة للاسم الصح اللي معاه صلاحية الـ Login
                 sh """
-                    cd vote && docker build -t abdelrahman-17/voting-app-vote:latest .
-                    cd ../result && docker build -t abdelrahman-17/voting-app-result:latest .
+                    cd vote && docker build -t abdelrahmana890/voting-app-vote:latest .
+                    cd ../result && docker build -t abdelrahmana890/voting-app-result:latest .
                 """
             }
         }
@@ -37,10 +37,9 @@ pipeline {
         stage('Security Scan (Trivy Image)') {
             steps {
                 echo 'Scanning Docker Images for OS Vulnerabilities via Trivy...'
-                // هنا تريفي هيعمل parse وهو مغمض لأن الاسم lowercase تماماً وسليم بنسبة 100%
                 sh """
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image abdelrahman-17/voting-app-vote:latest
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image abdelrahman-17/voting-app-result:latest
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image abdelrahmana890/voting-app-vote:latest
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image abdelrahmana890/voting-app-result:latest
                 """
             }
         }
@@ -51,8 +50,8 @@ pipeline {
                     echo 'Logging into Docker Hub Registry...'
                     sh """
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker push abdelrahman-17/voting-app-vote:latest
-                        docker push abdelrahman-17/voting-app-result:latest
+                        docker push abdelrahmana890/voting-app-vote:latest
+                        docker push abdelrahmana890/voting-app-result:latest
                     """
                 }
             }
