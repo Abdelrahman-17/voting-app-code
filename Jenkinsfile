@@ -23,7 +23,6 @@ pipeline {
         stage('Security Scan (Trivy FS)') {
             steps {
                 echo 'Scanning Source Code Files via Trivy...'
-                // استخدمنا دبل كوتس وعملنا escape للـ pwd عشان جينكينز والترمينال يمشوا صح
                 sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$(pwd):/root/ aquasec/trivy fs --skip-files /root/vote/Cargo.toml /root/"
             }
         }
@@ -31,17 +30,21 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 echo 'Building Enterprise Docker Images...'
-                sh "cd vote && docker build -t \${DOCKER_HUB_USER}/voting-app-vote:latest ."
-                sh "cd result && docker build -t \${DOCKER_HUB_USER}/voting-app-result:latest ."
+                // دمجنا الأمرين في بلوك sh واحد كبير عشان جينكينز ميتلخبطش في الـ Steps
+                sh """
+                    cd vote && docker build -t \${DOCKER_HUB_USER}/voting-app-vote:latest .
+                    cd ../result && docker build -t \${DOCKER_HUB_USER}/voting-app-result:latest .
+                """
             }
         }
 
         stage('Security Scan (Trivy Image)') {
             steps {
                 echo 'Scanning Docker Images for OS Vulnerabilities via Trivy...'
-                // هنا لازم دبل كوتس عشان الـ Variable يقرا Abdelrahman-17 صح!
-                sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \${DOCKER_HUB_USER}/voting-app-vote:latest"
-                sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \${DOCKER_HUB_USER}/voting-app-result:latest"
+                sh """
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \${DOCKER_HUB_USER}/voting-app-vote:latest
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \${DOCKER_HUB_USER}/voting-app-result:latest
+                """
             }
         }
 
@@ -49,11 +52,11 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     echo 'Logging into Docker Hub Registry...'
-                    sh 'echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin'
-                    
-                    echo 'Pushing Clean Enterprise Images...'
-                    sh "docker push \${DOCKER_HUB_USER}/voting-app-vote:latest"
-                    sh "docker push \${DOCKER_HUB_USER}/voting-app-result:latest"
+                    sh """
+                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                        docker push \${DOCKER_HUB_USER}/voting-app-vote:latest
+                        docker push \${DOCKER_HUB_USER}/voting-app-result:latest
+                    """
                 }
             }
         }
@@ -61,8 +64,10 @@ pipeline {
         stage('Continuous Deployment (CD)') {
             steps {
                 echo 'Deploying Application Services via Docker Compose Prod...'
-                sh "docker compose -f docker-compose.prod.yml pull"
-                sh "docker compose -f docker-compose.prod.yml up -d"
+                sh """
+                    docker compose -f docker-compose.prod.yml pull
+                    docker compose -f docker-compose.prod.yml up -d
+                """
                 echo 'Deployment complete! Application is live.'
             }
         }
