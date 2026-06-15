@@ -19,14 +19,13 @@ pipeline {
         stage('Security Scan (Trivy FS)') {
             steps {
                 echo 'Scanning Source Code Files via Trivy...'
-                sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$(pwd):/root/ aquasec/trivy fs --skip-files /root/vote/Cargo.toml /root/"
+                sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$HOME/.cache/trivy:/root/.cache/ -v \$(pwd):/root/ aquasec/trivy fs --skip-files /root/vote/Cargo.toml /root/"
             }
         }
         
         stage('Build Docker Images') {
             steps {
                 echo 'Building Enterprise Docker Images...'
-                // غيرنا الاسم صراحة للاسم الصح اللي معاه صلاحية الـ Login
                 sh """
                     cd vote && docker build -t abdelrahmana890/voting-app-vote:latest .
                     cd ../result && docker build -t abdelrahmana890/voting-app-result:latest .
@@ -38,8 +37,8 @@ pipeline {
             steps {
                 echo 'Scanning Docker Images for OS Vulnerabilities via Trivy...'
                 sh """
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image abdelrahmana890/voting-app-vote:latest
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image abdelrahmana890/voting-app-result:latest
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$HOME/.cache/trivy:/root/.cache/ aquasec/trivy image abdelrahmana890/voting-app-vote:latest
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$HOME/.cache/trivy:/root/.cache/ aquasec/trivy image abdelrahmana890/voting-app-result:latest
                 """
             }
         }
@@ -60,10 +59,8 @@ pipeline {
         stage('Continuous Deployment (CD)') {
             steps {
                 echo 'Deploying Application Services via Docker Compose Prod...'
-                sh """
-                    docker compose -f docker-compose.prod.yml pull
-                    docker compose -f docker-compose.prod.yml up -d
-                """
+                // ربطنا الأوامر بـ && صريحة في سطر واحد عشان نضمن الفصل والتنفيذ السليم 100%
+                sh "docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d"
                 echo 'Deployment complete! Application is live.'
             }
         }
