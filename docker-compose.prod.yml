@@ -20,6 +20,8 @@ services:
       - back-tier
 
   worker:
+    build:
+      context: ./worker
     image: abdelrahmana890/voting-app-worker:latest
     networks:
       - back-tier
