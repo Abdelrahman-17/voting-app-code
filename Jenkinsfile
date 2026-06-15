@@ -9,32 +9,31 @@ pipeline {
         stage('Fetch Code') {
             steps {
                 echo 'Fetching Latest Code from GitHub...'
-                // التأكد من أن الكود نزل بالكامل في المسار الحالي
                 checkout scm
             }
         }
         
         stage('SonarQube Code Check') {
             steps {
-                echo 'Running Static Code Analysis...'
-                // تعديل المسار لـ ${WORKSPACE} صراحة عشان السونار يقرأ الكود الفعلي مش فولدر فاضي
-                sh "docker run --rm --network=host -v ${WORKSPACE}:/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=/usr/src -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=squ_1b4ab7516d37ba55ed68be0c647cde14b6c8727e"
+                echo 'Running Static Code Analysis via SonarScanner CLI...'
+                // هنا ربطنا الـ Workspace بالـ /usr/src جوه الكونتينر، وخلينا السورس يقرأ من النقطة الحالية مع الفلترة
+                sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.inclusions=apps/** -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=squ_1b4ab7516d37ba55ed68be0c647cde14b6c8727e"
             }
         }
         
         stage('Security Scan (Trivy FS)') {
             steps {
                 echo 'Scanning Source Code Files via Trivy...'
-                sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v ${WORKSPACE}:/root/ aquasec/trivy fs /root/"
+                sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$(pwd):/root/ aquasec/trivy fs /root/"
             }
         }
         
         stage('Build Docker Images') {
             steps {
                 echo 'Building Enterprise Docker Images...'
-                // غيرنا المسار لـ ${WORKSPACE} عشان يقفش الـ Dockerfile بالملي
-                sh "docker build -t ${DOCKER_HUB_USER}/voting-app-vote:latest ${WORKSPACE}/apps/vote"
-                sh "docker build -t ${DOCKER_HUB_USER}/voting-app-result:latest ${WORKSPACE}/apps/result"
+                // بندخل جوه الفولدر الأول ونعمل البيلد عشان نتفادى حوار الـ Workspace المتغير
+                sh "cd apps/vote && docker build -t \${DOCKER_HUB_USER}/voting-app-vote:latest ."
+                sh "cd apps/result && docker build -t \${DOCKER_HUB_USER}/voting-app-result:latest ."
             }
         }
 
@@ -59,9 +58,8 @@ pipeline {
         stage('Continuous Deployment (CD)') {
             steps {
                 echo 'Deploying Application Services...'
-                // تشغيل الـ compose من الفولدر الصح
-                sh "docker compose -f ${WORKSPACE}/docker-compose.prod.yml pull"
-                sh "docker compose -f ${WORKSPACE}/docker-compose.prod.yml up -d"
+                sh "docker compose -f docker-compose.prod.yml pull"
+                sh "docker compose -f docker-compose.prod.yml up -d"
             }
         }
     }
