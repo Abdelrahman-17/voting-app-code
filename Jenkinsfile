@@ -1,68 +1,85 @@
 pipeline {
     agent any
-    
+
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
+
     stages {
-        stage('Fetch Code') {
+        stage('Checkout SCM') {
             steps {
-                echo 'Fetching Latest Code from GitHub...'
                 checkout scm
             }
         }
-        
+
+        stage('Fetch Code') {
+            steps {
+                echo "Fetching latest changes..."
+            }
+        }
+
         stage('SonarQube Code Check') {
             steps {
-                echo 'Running Static Code Analysis via SonarScanner CLI...'
-                sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=squ_1b4ab7516d37ba55ed68be0c647cde14b6c8727e"
+                withSonarQubeEnv('sonar-server') {
+                    sh "${SCANNER_HOME}/bin/sonar-scanner \
+                    -Dsonar.projectKey=voting-app \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=http://127.0.0.1:9000 \
+                    -Dsonar.login=squ_1b4ab7516d37ba55ed68be0c647cde14b6c87272"
+                }
             }
         }
-        
+
         stage('Security Scan (Trivy FS)') {
             steps {
-                echo 'Scanning Source Code Files via Trivy...'
-                sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$HOME/.cache/trivy:/root/.cache/ -v \$(pwd):/root/ aquasec/trivy fs --skip-files /root/vote/Cargo.toml /root/"
+                sh "trivy fs --format table -o trivy-fs-report.html ."
             }
         }
-        
+
         stage('Build Docker Images') {
             steps {
-                echo 'Building Enterprise Docker Images...'
-                sh """
-                    cd vote && docker build -t abdelrahmana890/voting-app-vote:latest .
-                    cd ../result && docker build -t abdelrahmana890/voting-app-result:latest .
-                """
+                sh "docker build -t abdelrahmana890/voting-app-vote:latest ./apps/vote"
+                sh "docker build -t abdelrahmana890/voting-app-result:latest ./apps/result"
             }
         }
 
         stage('Security Scan (Trivy Image)') {
             steps {
-                echo 'Scanning Docker Images for OS Vulnerabilities via Trivy...'
-                sh """
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$HOME/.cache/trivy:/root/.cache/ aquasec/trivy image abdelrahmana890/voting-app-vote:latest
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$HOME/.cache/trivy:/root/.cache/ aquasec/trivy image abdelrahmana890/voting-app-result:latest
-                """
+                sh "trivy image abdelrahmana890/voting-app-vote:latest"
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    echo 'Logging into Docker Hub Registry...'
-                    sh """
-                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker push abdelrahmana890/voting-app-vote:latest
-                        docker push abdelrahmana890/voting-app-result:latest
-                    """
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin"
+                    sh "docker push abdelrahmana890/voting-app-vote:latest"
+                    sh "docker push abdelrahmana890/voting-app-result:latest"
                 }
             }
         }
 
         stage('Continuous Deployment (CD)') {
             steps {
-                echo 'Deploying Application Services via Docker Compose Prod...'
-                // ربطنا الأوامر بـ && صريحة في سطر واحد عشان نضمن الفصل والتنفيذ السليم 100%
-                sh "docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d"
-                echo 'Deployment complete! Application is live.'
+                script {
+                    // التعديل السحري: بندخل للفولدر وبنشغل علطول مع البناء المحلي للـ worker والـ vote، بدون pull يعطلنا
+                    dir('apps') {
+                        sh 'docker compose -f docker-compose.prod.yml up -d --build'
+                    }
+                }
             }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished execution."
+        }
+        success {
+            echo "Deployment complete! Application is live."
+        }
+        failure {
+            echo "Pipeline failed. Check logs for issues."
         }
     }
 }
