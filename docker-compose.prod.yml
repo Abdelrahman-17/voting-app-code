@@ -20,7 +20,7 @@ services:
     restart: always
 
   worker:
-    build: ./apps/worker
+    build: ./worker
     networks:
       - backend-net
     restart: always
