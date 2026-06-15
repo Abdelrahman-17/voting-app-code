@@ -26,10 +26,10 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 echo 'Building Enterprise Docker Images...'
-                // كتبنا الاسم صراحة هنا عشان نضمن البناء السليم
+                // حولنا الـ A لحروف صغيرة abdelrahman-17 عشان نمشي مع معايير الـ Registry الصارمة
                 sh """
-                    cd vote && docker build -t Abdelrahman-17/voting-app-vote:latest .
-                    cd ../result && docker build -t Abdelrahman-17/voting-app-result:latest .
+                    cd vote && docker build -t abdelrahman-17/voting-app-vote:latest .
+                    cd ../result && docker build -t abdelrahman-17/voting-app-result:latest .
                 """
             }
         }
@@ -37,10 +37,10 @@ pipeline {
         stage('Security Scan (Trivy Image)') {
             steps {
                 echo 'Scanning Docker Images for OS Vulnerabilities via Trivy...'
-                // هنا كتبنا الاسم صراحة عشان تريفي يقرأ الصورة صح وميضربش Fatal parse error
+                // هنا تريفي هيعمل parse وهو مغمض لأن الاسم lowercase تماماً وسليم بنسبة 100%
                 sh """
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image Abdelrahman-17/voting-app-vote:latest
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image Abdelrahman-17/voting-app-result:latest
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image abdelrahman-17/voting-app-vote:latest
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image abdelrahman-17/voting-app-result:latest
                 """
             }
         }
@@ -51,8 +51,8 @@ pipeline {
                     echo 'Logging into Docker Hub Registry...'
                     sh """
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker push Abdelrahman-17/voting-app-vote:latest
-                        docker push Abdelrahman-17/voting-app-result:latest
+                        docker push abdelrahman-17/voting-app-vote:latest
+                        docker push abdelrahman-17/voting-app-result:latest
                     """
                 }
             }
