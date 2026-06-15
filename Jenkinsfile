@@ -16,25 +16,25 @@ pipeline {
         stage('SonarQube Code Check') {
             steps {
                 echo 'Running Static Code Analysis via SonarScanner CLI...'
-                // ربط الـ Workspace بالـ /usr/src جوه الكونتينر، واستخدام التوكن الصحيح الخاص بك
-                sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.inclusions=apps/** -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=squ_1b4ab7516d37ba55ed68be0c647cde14b6c8727e"
+                // شيلنا inclusions لتفادي مشاكل الفولدر الوهمي
+                sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=squ_1b4ab7516d37ba55ed68be0c647cde14b6c8727e"
             }
         }
         
         stage('Security Scan (Trivy FS)') {
             steps {
-                echo 'Scanning Source Code Files via Trivy and skipping broken configs...'
-                // التعديل الأخير: تخطي ملف Cargo.toml المكسور لتفادي الـ FATAL scan error
-                sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$(pwd):/root/ aquasec/trivy fs --skip-files /root/apps/vote/Cargo.toml /root/"
+                echo 'Scanning Source Code Files via Trivy...'
+                // تخطي ملف Cargo.toml مباشرة من الفولدر الحقيقي
+                sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$(pwd):/root/ aquasec/trivy fs --skip-files /root/vote/Cargo.toml /root/"
             }
         }
         
         stage('Build Docker Images') {
             steps {
                 echo 'Building Enterprise Docker Images...'
-                // الدخول للمجلدات بالنسبية لضمان التقاط الـ Dockerfile بنجاح
-                sh "cd apps/vote && docker build -t \${DOCKER_HUB_USER}/voting-app-vote:latest ."
-                sh "cd apps/result && docker build -t \${DOCKER_HUB_USER}/voting-app-result:latest ."
+                // الدخول للمجلدات الحقيقية مباشرة بدون apps/
+                sh "cd vote && docker build -t \${DOCKER_HUB_USER}/voting-app-vote:latest ."
+                sh "cd result && docker build -t \${DOCKER_HUB_USER}/voting-app-result:latest ."
             }
         }
 
