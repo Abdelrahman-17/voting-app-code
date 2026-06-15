@@ -14,9 +14,9 @@ pipeline {
         
         stage('SonarQube Code Check') {
             steps {
-                echo 'Running Static Code Analysis via SonarScanner CLI directly...'
-                // هنا شيلنا الـ Wrapper الخربان تماماً وشغلنا السيرفيس كـ shell command صريح ومباشر
-                sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.inclusions=apps/** -Dsonar.host.url=http://127.0.0.1:9000"
+                echo 'Running Static Code Analysis via SonarScanner CLI...'
+                // هنا حطينا التوكن بتاعك اللي بيبدأ بـ squ_ عشان نتخطي الـ Authorization نهائياً
+                sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.inclusions=apps/** -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=squ_1b4ab7516d37ba55ed68be0c647cde14b6c8727e"
             }
         }
         
