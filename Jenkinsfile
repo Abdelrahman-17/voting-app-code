@@ -14,11 +14,9 @@ pipeline {
         
         stage('SonarQube Code Check') {
             steps {
-                echo 'Running Static Code Analysis via SonarScanner...'
-                // رجعنا للـ Token المؤمن جوه جينكينز عشان يتخطى الـ Bad Authentication
-                withSonarQubeEnv('sonar') {
-                    sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.inclusions=apps/** -Dsonar.host.url=http://127.0.0.1:9000"
-                }
+                echo 'Running Static Code Analysis via SonarScanner CLI directly...'
+                // هنا شيلنا الـ Wrapper الخربان تماماً وشغلنا السيرفيس كـ shell command صريح ومباشر
+                sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.inclusions=apps/** -Dsonar.host.url=http://127.0.0.1:9000"
             }
         }
         
