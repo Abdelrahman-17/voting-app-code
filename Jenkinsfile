@@ -1,10 +1,6 @@
 pipeline {
     agent any
     
-    environment {
-        DOCKER_HUB_USER = 'Abdelrahman-17'
-    }
-    
     stages {
         stage('Fetch Code') {
             steps {
@@ -30,10 +26,10 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 echo 'Building Enterprise Docker Images...'
-                // دمجنا الأمرين في بلوك sh واحد كبير عشان جينكينز ميتلخبطش في الـ Steps
+                // كتبنا الاسم صراحة هنا عشان نضمن البناء السليم
                 sh """
-                    cd vote && docker build -t \${DOCKER_HUB_USER}/voting-app-vote:latest .
-                    cd ../result && docker build -t \${DOCKER_HUB_USER}/voting-app-result:latest .
+                    cd vote && docker build -t Abdelrahman-17/voting-app-vote:latest .
+                    cd ../result && docker build -t Abdelrahman-17/voting-app-result:latest .
                 """
             }
         }
@@ -41,9 +37,10 @@ pipeline {
         stage('Security Scan (Trivy Image)') {
             steps {
                 echo 'Scanning Docker Images for OS Vulnerabilities via Trivy...'
+                // هنا كتبنا الاسم صراحة عشان تريفي يقرأ الصورة صح وميضربش Fatal parse error
                 sh """
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \${DOCKER_HUB_USER}/voting-app-vote:latest
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \${DOCKER_HUB_USER}/voting-app-result:latest
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image Abdelrahman-17/voting-app-vote:latest
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image Abdelrahman-17/voting-app-result:latest
                 """
             }
         }
@@ -54,8 +51,8 @@ pipeline {
                     echo 'Logging into Docker Hub Registry...'
                     sh """
                         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                        docker push \${DOCKER_HUB_USER}/voting-app-vote:latest
-                        docker push \${DOCKER_HUB_USER}/voting-app-result:latest
+                        docker push Abdelrahman-17/voting-app-vote:latest
+                        docker push Abdelrahman-17/voting-app-result:latest
                     """
                 }
             }
