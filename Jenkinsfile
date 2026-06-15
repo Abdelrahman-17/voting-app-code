@@ -16,7 +16,6 @@ pipeline {
         stage('SonarQube Code Check') {
             steps {
                 echo 'Running Static Code Analysis via SonarScanner CLI...'
-                // شيلنا inclusions لتفادي مشاكل الفولدر الوهمي
                 sh "docker run --rm --network=host -v \$(pwd):/usr/src sonarsource/sonar-scanner-cli -Dsonar.projectKey=voting-app -Dsonar.sources=. -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=squ_1b4ab7516d37ba55ed68be0c647cde14b6c8727e"
             }
         }
@@ -24,7 +23,7 @@ pipeline {
         stage('Security Scan (Trivy FS)') {
             steps {
                 echo 'Scanning Source Code Files via Trivy...'
-                // تخطي ملف Cargo.toml مباشرة من الفولدر الحقيقي
+                // استخدمنا دبل كوتس وعملنا escape للـ pwd عشان جينكينز والترمينال يمشوا صح
                 sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$(pwd):/root/ aquasec/trivy fs --skip-files /root/vote/Cargo.toml /root/"
             }
         }
@@ -32,7 +31,6 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 echo 'Building Enterprise Docker Images...'
-                // الدخول للمجلدات الحقيقية مباشرة بدون apps/
                 sh "cd vote && docker build -t \${DOCKER_HUB_USER}/voting-app-vote:latest ."
                 sh "cd result && docker build -t \${DOCKER_HUB_USER}/voting-app-result:latest ."
             }
@@ -41,8 +39,9 @@ pipeline {
         stage('Security Scan (Trivy Image)') {
             steps {
                 echo 'Scanning Docker Images for OS Vulnerabilities via Trivy...'
-                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${DOCKER_HUB_USER}/voting-app-vote:latest'
-                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${DOCKER_HUB_USER}/voting-app-result:latest'
+                // هنا لازم دبل كوتس عشان الـ Variable يقرا Abdelrahman-17 صح!
+                sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \${DOCKER_HUB_USER}/voting-app-vote:latest"
+                sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \${DOCKER_HUB_USER}/voting-app-result:latest"
             }
         }
 
@@ -53,8 +52,8 @@ pipeline {
                     sh 'echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin'
                     
                     echo 'Pushing Clean Enterprise Images...'
-                    sh 'docker push ${DOCKER_HUB_USER}/voting-app-vote:latest'
-                    sh 'docker push ${DOCKER_HUB_USER}/voting-app-result:latest'
+                    sh "docker push \${DOCKER_HUB_USER}/voting-app-vote:latest"
+                    sh "docker push \${DOCKER_HUB_USER}/voting-app-result:latest"
                 }
             }
         }
